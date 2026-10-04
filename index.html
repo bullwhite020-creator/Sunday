@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b1e3a">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<title>Gorofa</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,Arial,sans-serif;background:#f0f4f9;color:#0f172a}
+button,input,select,label{touch-action:manipulation;font-family:inherit}
+.hidden{display:none!important}.num{font-variant-numeric:tabular-nums}
+#loginScreen{position:fixed;inset:0;z-index:900;background:linear-gradient(160deg,#05122a,#0b1e3a 45%,#12294d);display:flex;align-items:center;justify-content:center;padding:24px 18px;overflow:auto}
+.login-box{width:100%;max-width:400px;background:#fff;border-radius:22px;padding:36px 26px;box-shadow:0 30px 90px rgba(0,0,0,.5)}
+.login-mark{width:76px;height:76px;margin:0 auto 14px;border-radius:22px;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,#0b1e3a,#12294d);color:#fff;font-size:36px}
+.login-box h2{margin:0;color:#0b1e3a;font-size:26px;text-align:center;font-weight:800}
+.login-box .sub-brand{color:#0ea472;font-size:11px;font-weight:800;text-align:center;letter-spacing:2.5px;margin-top:6px;text-transform:uppercase}
+.login-box .tagline{color:#64748b;font-size:13px;text-align:center;margin:12px 0 22px}
+.login-error{display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:11px 14px;font-size:13px;margin-bottom:14px}
+#appScreen{display:none;flex-direction:column;min-height:100vh}
+.appbar{background:linear-gradient(135deg,#05122a,#12294d 55%,#1b3a68);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;flex-wrap:wrap}
+.appbar .mark{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:20px}
+.appbar .title{font-size:15px;font-weight:800;margin:0}
+.appbar .subtitle{font-size:10px;opacity:.7;margin-top:2px}
+.appbar .brand{display:flex;align-items:center;gap:10px;flex:1}
+.appbar .userbox{display:flex;align-items:center;gap:6px;margin-left:auto}
+.appbar .who{text-align:right;max-width:130px;overflow:hidden}
+.appbar .who .lbl{font-size:9px;opacity:.6;text-transform:uppercase}
+.appbar .who .name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .role{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;margin-top:2px;text-transform:uppercase}
+.appbar .role.admin{background:#c9a45a;color:#3b2800}
+.appbar .role.user{background:rgba(255,255,255,.18);color:#fff}
+.appbar .abtn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;min-height:34px;cursor:pointer}
+.statusbar{background:#0a1730;color:#94a3b8;padding:7px 16px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:8px}
+.statusbar .dot{width:8px;height:8px;border-radius:50%;background:#d97706}
+.statusbar .dot.ok{background:#0ea472}.statusbar .dot.bad{background:#dc2626}
+#main{flex:1;padding:16px;max-width:1400px;margin:0 auto;width:100%}
+.tabs{display:flex;gap:5px;overflow-x:auto;padding:10px 14px;background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:64px;z-index:40;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:18px;padding:8px 13px;font-size:12.5px;font-weight:700;white-space:nowrap;min-height:36px;cursor:pointer;flex-shrink:0}
+.tabs button.active{background:#0b1e3a;border-color:#12294d;color:#fff}
+.view{display:none}.view.active{display:block}
+.screen-title{font-size:21px;font-weight:800;margin:0 0 4px;color:#0b1e3a}
+.muted{color:#64748b;font-size:12.5px;margin:0 0 16px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:0 2px 6px rgba(15,23,42,.04);margin-bottom:12px}
+.card h3{font-size:14px;font-weight:800;color:#0b1e3a;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.card h3::before{content:"";width:3px;height:14px;background:#0ea472;border-radius:2px}
+.card h3.no-bar::before{display:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;position:relative;overflow:hidden;box-shadow:0 2px 6px rgba(15,23,42,.04)}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#12294d}
+.stat b{display:block;font-size:20px;font-weight:800;color:#0b1e3a;line-height:1.05}
+.stat span{font-size:10px;color:#64748b;display:block;margin-top:4px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+input,select{width:100%;padding:11px 13px;margin:0 0 9px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;outline:none;background:#fff;color:#0f172a;font-weight:500}
+input:focus,select:focus{border-color:#12294d;box-shadow:0 0 0 3px rgba(18,41,77,.08)}
+label{font-size:10.5px;font-weight:800;letter-spacing:.4px;color:#334155;display:block;margin:0 0 5px;text-transform:uppercase}
+button{border:0;border-radius:9px;padding:10px 14px;font-weight:700;font-size:13.5px;cursor:pointer;min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+button:active{transform:scale(.97)}
+.primary{background:linear-gradient(135deg,#0b1e3a,#12294d);color:#fff;width:100%}
+.secondary{background:#fff;color:#12294d;border:1.5px solid #e2e8f0}
+.danger{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.link{background:none;color:#12294d;padding:5px 0;font-size:12.5px;min-height:auto;font-weight:700}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+.row>input{flex:1;margin-bottom:0;min-width:120px}
+.row>select{flex:1;margin-bottom:0;min-width:110px}
+.item{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #e2e8f0;align-items:center;flex-wrap:wrap}
+.item:last-child{border-bottom:0}
+.item-main{flex:1;min-width:180px}
+.item-name{font-weight:700;font-size:14.5px;color:#0b1e3a;word-break:break-word}
+.item-id{font-weight:700;font-size:12px;color:#12294d;margin-top:2px}
+.item-meta{font-size:11.5px;color:#64748b;margin-top:3px;word-break:break-word}
+.item-amount{font-weight:800;color:#12294d;font-size:15px}
+.empty{padding:28px 18px;text-align:center;color:#64748b;background:#f8fafc;border-radius:10px;font-size:13px;border:1px dashed #e2e8f0}
+.pill{display:inline-block;font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:20px;background:#e6f7f1;color:#0b8f63;text-transform:uppercase}
+.pill.warn{background:#fff7ed;color:#92400e}
+.pill.bad{background:#fef2f2;color:#991b1b}
+.avatar{width:40px;height:40px;border-radius:50%;background:#f0f9f6;border:1.5px solid #b7e8df;display:inline-flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.person{display:flex;align-items:center;gap:10px}
+.badge{display:inline-block;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;text-transform:uppercase;margin-left:5px;vertical-align:middle}
+.badge.admin{background:#c9a45a;color:#3b2800}
+.badge.user{background:#e0e7ef;color:#12294d}
+.badge.skilled{background:#dbeafe;color:#1e40af}
+.badge.unskilled{background:#fef3c7;color:#92400e}
+#printArea{display:none}
+@media print{
+  body{background:#fff!important}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;color:#000;font-family:Arial;padding:20px}
+  #printArea h1{font-size:19px;margin:0 0 4px}
+  #printArea h2{font-size:14px;margin:12px 0 5px}
+  #printArea table{width:100%;border-collapse:collapse;margin:8px 0}
+  #printArea th,#printArea td{border:1px solid #333;padding:6px;font-size:12px;text-align:left}
+  #printArea th{background:#eee}
+  #printArea .sig{display:flex;justify-content:space-between;margin-top:36px;gap:16px}
+  #printArea .sigline{flex:1;border-top:1px solid #333;padding-top:4px;font-size:11px;text-align:center}
+  #printArea .receipt{max-width:540px;margin:0 auto}
+  #printArea .big{font-size:16px;font-weight:bold}
+}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-mark">🏢</div>
+    <h2>Gorofa</h2>
+    <div class="sub-brand">Payment System</div>
+    <p class="tagline">Sign in to continue</p>
+    <div id="loginError" class="login-error"></div>
+    <form id="loginForm">
+      <label>Username</label>
+      <input id="loginUser" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Enter username" required>
+      <label>Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password" required>
+      <button class="primary" type="submit" style="padding:13px;font-size:15px;margin-top:6px">Sign In →</button>
+    </form>
+    <div style="text-align:center;margin-top:14px"><button id="clearSession" class="link" style="font-size:11px;color:#94a3b8">Reset browser</button></div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <header class="appbar">
+    <div class="brand"><div class="mark">🏢</div><div><h1 class="title">Gorofa</h1><div class="subtitle">Attendance • Wages • Payments</div></div></div>
+    <div class="userbox">
+      <div class="who"><div class="lbl">Signed in</div><div class="name" id="userLabel"></div><span id="roleBadge" class="role user">user</span></div>
+      <button id="logoutBtn" class="abtn">Logout</button>
+    </div>
+  </header>
+  <div class="statusbar"><span id="statusDot" class="dot"></span><span id="cloudStatus">Connecting…</span></div>
+  <nav class="tabs">
+    <button data-view="dashboard" class="active">Dashboard</button>
+    <button data-view="attendance">Attendance</button>
+    <button data-view="workers">Workers</button>
+    <button data-view="payments">Payments</button>
+    <button data-view="expenses">Expenses</button>
+  </nav>
+
+  <main id="main">
+    <section id="view-dashboard" class="view active">
+      <h2 class="screen-title">Dashboard</h2>
+      <p class="muted">Live overview.</p>
+      <div class="stats">
+        <div class="stat"><b id="statWorkers" class="num">0</b><span>Workers</span></div>
+        <div class="stat"><b id="statPresent" class="num">0</b><span>Present this week</span></div>
+        <div class="stat"><b id="statDue" class="num">—</b><span>Weekly due</span></div>
+        <div class="stat"><b id="statExp" class="num">—</b><span>Expenses</span></div>
+        <div class="stat"><b id="statSite" class="num">—</b><span>Total site cost</span></div>
+      </div>
+      <div class="card"><h3>Recent payments</h3><div id="recentList"></div></div>
+    </section>
+
+    <section id="view-attendance" class="view">
+      <h2 class="screen-title">Attendance</h2>
+      <p class="muted">Mark each worker, then tap Save.</p>
+      <div class="card">
+        <div class="row">
+          <div style="flex:1;min-width:140px"><label>Date</label><input id="attDate" type="date"></div>
+          <div style="flex:1;min-width:140px"><label>Time</label><input id="attTime" type="time" step="60"></div>
+        </div>
+        <button class="primary" onclick="saveAttendance()">💾 Save attendance</button>
+      </div>
+      <div class="card"><input id="searchDateAtt" placeholder="Search worker…"><div id="dateAttList" style="margin-top:10px"></div></div>
+    </section>
+
+    <section id="view-workers" class="view">
+      <h2 class="screen-title">Workers</h2>
+      <p class="muted">Skilled and unskilled separated.</p>
+      <div class="card">
+        <h3>Add worker</h3>
+        <div class="row">
+          <div style="flex:1;min-width:150px"><label>Name</label><input id="wName" placeholder="John Kamau"></div>
+          <div style="flex:1;min-width:120px"><label>Phone</label><input id="wPhone" placeholder="07xx…"></div>
+        </div>
+        <div class="row">
+          <div style="flex:1;min-width:120px"><label>Category</label><select id="wCat">
+            <option value="Skilled">Skilled</option>
+            <option value="Unskilled">Unskilled</option>
+            <option value="Other">Other</option>
+          </select></div>
+          <div style="flex:1;min-width:100px"><label>Full rate</label><input id="wFull" type="number" min="0" step="0.01" placeholder="0"></div>
+          <div style="flex:1;min-width:100px"><label>Half rate</label><input id="wHalf" type="number" min="0" step="0.01" placeholder="0"></div>
+        </div>
+        <button class="primary" onclick="addWorker()">＋ Add worker</button>
+      </div>
+      <div class="card"><h3 class="no-bar">🔧 Skilled <span id="skilledCount" class="badge skilled">0</span></h3><input id="searchSkilled" placeholder="Search…" style="margin-bottom:8px"><div id="skilledList"></div></div>
+      <div class="card"><h3 class="no-bar">💪 Unskilled <span id="unskilledCount" class="badge unskilled">0</span></h3><input id="searchUnskilled" placeholder="Search…" style="margin-bottom:8px"><div id="unskilledList"></div></div>
+      <div class="card"><h3 class="no-bar">Others</h3><div id="otherList"></div></div>
+    </section>
+
+    <section id="view-payments" class="view">
+      <h2 class="screen-title">Payments</h2>
+      <p class="muted">Record payment, sign, print or download.</p>
+      <div class="card">
+        <input id="paySearch" placeholder="Search worker…" style="margin:0 0 10px">
+        <div class="row" style="margin:0">
+          <button class="secondary" onclick="printAllPayments()">🖨️ Print all</button>
+          <button class="secondary" onclick="downloadAllPayments()">⬇️ Download all</button>
+        </div>
+      </div>
+      <div class="stats" id="paySummary"></div>
+      <div id="paymentList"></div>
+    </section>
+
+    <section id="view-expenses" class="view">
+      <h2 class="screen-title">Expenses &amp; Materials</h2>
+      <p class="muted">Type any item. Tap Save.</p>
+      <div class="card">
+        <div class="row">
+          <div style="flex:1;min-width:130px"><label>Date</label><input id="exDate" type="date"></div>
+          <div style="flex:2;min-width:160px"><label>Item</label><input id="exItem" placeholder="Cement, Sand, transport…" list="expenseSuggestions"></div>
+          <datalist id="expenseSuggestions">
+            <option value="Sand"></option><option value="Kokoto"></option><option value="Cement"></option>
+            <option value="Nails"></option><option value="Timber"></option><option value="Transport"></option>
+            <option value="Fuel"></option><option value="Food"></option><option value="Water"></option>
+          </datalist>
+        </div>
+        <div class="row">
+          <div style="flex:1;min-width:110px"><label>Qty</label><input id="exQty" type="number" min="0.01" step="0.01" placeholder="1"></div>
+          <div style="flex:1;min-width:130px"><label>Rate per unit</label><input id="exUnit" type="number" min="0" step="0.01" placeholder="0"></div>
+        </div>
+        <button class="primary" onclick="addExpense()">💾 Save expense</button>
+      </div>
+      <div class="card"><h3>All records</h3><div id="expenseList"></div></div>
+    </section>
+  </main>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+(function(){
+'use strict';
+var KEY='gorofa_v10',SESS='gorofa_sess_v10',DOMAIN='@gorofa.local';
+var db=load(),role='user',me=null,cloudOn=false,saving=false,applying=false,unsub=null,sigPad=null;
+
+function load(){try{var s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')return fix(s);}catch(e){}return fix({});}
+function fix(o){
+  o=o||{};
+  if(!Array.isArray(o.workers))o.workers=[];
+  if(!o.attendance||typeof o.attendance!=='object')o.attendance={};
+  if(!o.attendanceMeta||typeof o.attendanceMeta!=='object')o.attendanceMeta={};
+  if(!o.payments||typeof o.payments!=='object')o.payments={};
+  if(!Array.isArray(o.expenses))o.expenses=[];
+  if(!o.settings||typeof o.settings!=='object')o.settings={};
+  if(!o.settings.currency)o.settings.currency='KSh';
+  if(!o.settings.defaultTime)o.settings.defaultTime='08:00';
+  return o;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}if(cloudOn&&!applying)push();}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function cur(v){return (db.settings.currency||'KSh')+' '+Number(v||0).toFixed(2);}
+function iso(d){return new Date(d).toISOString().slice(0,10);}
+function mon(d){d=new Date(d);var x=(d.getDay()+6)%7;d.setDate(d.getDate()-x);d.setHours(0,0,0,0);return d;}
+function wkStart(){return iso(mon(new Date()));}
+function wkDays(){var s=new Date(wkStart()+'T00:00:00'),a=[];for(var i=0;i<7;i++){var d=new Date(s);d.setDate(d.getDate()+i);a.push(d);}return a;}
+function aKey(w,d){return w+'|'+d;}
+function aStat(w,d){return db.attendance[aKey(w,d)]||'off';}
+function dayAmt(w,d){var s=aStat(w.id,d);if(s==='off')return 0;var m=db.attendanceMeta[aKey(w.id,d)]||{};if(m.custom!=null&&m.custom!=='')return +m.custom||0;return s==='full'?+w.fullRate:s==='half'?+w.halfRate:0;}
+function weekAmt(w){return wkDays().reduce(function(a,d){return a+dayAmt(w,iso(d));},0);}
+function weekPres(w){return wkDays().filter(function(d){return aStat(w.id,iso(d))!=='off';}).length;}
+function inWeek(d){var ds=wkDays();return d>=iso(ds[0])&&d<=iso(ds[6]);}
+function expTotal(e){return (Number(e.quantity)||0)*(Number(e.unitAmount)||0);}
+function uToEmail(u){u=String(u||'').trim().toLowerCase();return !u?'':(u.indexOf('@')!==-1?u:u+DOMAIN);}
+function eToUser(e){e=String(e||'').toLowerCase();var i=e.indexOf(DOMAIN);return i===-1?e:e.slice(0,i);}
+function valid(u){return /^[a-z0-9._-]{3,30}$/i.test(String(u||'').trim());}
+function setStat(t,k){var d=$('statusDot');if(d)d.className='dot '+(k||'');var c=$('cloudStatus');if(c)c.textContent=t;}
+
+function render(){renderDash();renderAtt();renderWorkers();renderPayments();renderExpenses();}
+function renderDash(){
+  var due=db.workers.reduce(function(s,w){return s+weekAmt(w);},0);
+  var pres=db.workers.reduce(function(s,w){return s+weekPres(w);},0);
+  var ex=db.expenses.filter(function(e){return inWeek(e.date);}).reduce(function(a,e){return a+expTotal(e);},0);
+  $('statWorkers').textContent=db.workers.length;
+  $('statPresent').textContent=pres;
+  $('statDue').textContent=cur(due);
+  $('statExp').textContent=cur(ex);
+  $('statSite').textContent=cur(due+ex);
+  var ks=Object.keys(db.payments).slice(-6).reverse();
+  var h=ks.map(function(k){
+    var w=db.workers.filter(function(x){return x.id===k.split('|')[0];})[0];if(!w)return '';
+    var p=db.payments[k];var paid=typeof p==='number'?p:(p.paid||0);
+    return '<div class="item"><div class="item-main"><div class="item-name">'+esc(w.name)+'</div><div class="item-id">ID: '+esc(w.id)+'</div></div><div class="item-amount">'+cur(paid)+'</div></div>';
+  }).filter(Boolean).join('');
+  $('recentList').innerHTML=h||'<div class="empty">No payments yet</div>';
+}
+function renderAtt(){
+  var d=($('attDate')&&$('attDate').value)||iso(new Date());
+  var q=($('searchDateAtt')&&$('searchDateAtt').value||'').toLowerCase();
+  var list=db.workers.filter(function(w){return !q||(w.name+' '+w.id).toLowerCase().indexOf(q)!==-1;});
+  $('dateAttList').innerHTML=list.map(function(w){
+    var v=aStat(w.id,d);
+    return '<div class="item"><div class="person"><div class="avatar">👷</div><div class="item-main"><div class="item-name">'+esc(w.name)+'</div><div class="item-id">ID: '+esc(w.id)+'</div><div class="item-meta">'+esc(w.category||'—')+(v!=='off'?' • '+cur(dayAmt(w,d)):'')+'</div></div></div>'+
+      '<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="'+(v==='full'?'primary':'secondary')+'" data-m="'+esc(w.id)+'|'+d+'|full" style="padding:8px 12px;font-size:11.5px;min-width:54px;min-height:36px;width:auto">FULL</button>'+
+      '<button class="'+(v==='half'?'primary':'secondary')+'" data-m="'+esc(w.id)+'|'+d+'|half" style="padding:8px 12px;font-size:11.5px;min-width:54px;min-height:36px;width:auto">HALF</button>'+
+      '<button class="'+(v==='off'?'danger':'secondary')+'" data-m="'+esc(w.id)+'|'+d+'|off" style="padding:8px 12px;font-size:11.5px;min-width:54px;min-height:36px;width:auto">OFF</button></div></div>';
+  }).join('')||'<div class="empty">No workers</div>';
+}
+function workerRow(w,i){
+  return '<div class="item"><div class="person"><div class="avatar">👷</div><div class="item-main"><div class="item-name">'+esc(w.name)+'</div><div class="item-id">ID: '+esc(w.id)+'</div><div class="item-meta">'+esc(w.phone||'—')+' • Full '+cur(w.fullRate)+' • Half '+cur(w.halfRate)+'</div></div></div>'+
+    '<div style="display:flex;gap:5px"><button class="secondary" data-edit="'+i+'" style="padding:7px 11px;font-size:11.5px;min-height:34px">Edit</button><button class="danger" data-del="'+i+'" style="padding:7px 11px;font-size:11.5px;min-height:34px">Del</button></div></div>';
+}
+function renderWorkers(){
+  var s=($('searchSkilled')&&$('searchSkilled').value.toLowerCase())||'';
+  var u=($('searchUnskilled')&&$('searchUnskilled').value.toLowerCase())||'';
+  var sk=[],us=[],ot=[];
+  db.workers.forEach(function(w,i){
+    var cat=(w.category||'').toLowerCase();
+    var rec={w:w,i:i};
+    if(cat==='skilled')sk.push(rec);
+    else if(cat==='unskilled')us.push(rec);
+    else ot.push(rec);
+  });
+  $('skilledCount').textContent=sk.length;
+  $('unskilledCount').textContent=us.length;
+  $('skilledList').innerHTML=sk.filter(function(r){return !s||r.w.name.toLowerCase().indexOf(s)!==-1;}).map(function(r){return workerRow(r.w,r.i);}).join('')||'<div class="empty">None</div>';
+  $('unskilledList').innerHTML=us.filter(function(r){return !u||r.w.name.toLowerCase().indexOf(u)!==-1;}).map(function(r){return workerRow(r.w,r.i);}).join('')||'<div class="empty">None</div>';
+  $('otherList').innerHTML=ot.map(function(r){return workerRow(r.w,r.i);}).join('')||'<div class="empty">None</div>';
+}
+function renderPayments(){
+  var q=($('paySearch')&&$('paySearch').value||'').toLowerCase();
+  var list=db.workers.filter(function(w){return !q||(w.name+' '+w.id).toLowerCase().indexOf(q)!==-1;});
+  var wk=wkStart();
+  var due=0,paid=0;
+  list.forEach(function(w){due+=weekAmt(w);var p=db.payments[w.id+'|'+wk];paid+=p?(typeof p==='number'?p:(p.paid||0)):0;});
+  $('paySummary').innerHTML='<div class="stat"><b class="num">'+cur(due)+'</b><span>Total due</span></div><div class="stat"><b class="num">'+cur(paid)+'</b><span>Paid</span></div><div class="stat"><b class="num">'+cur(Math.max(0,due-paid))+'</b><span>Outstanding</span></div>';
+  $('paymentList').innerHTML=list.map(function(w){
+    var d=weekAmt(w),p=db.payments[w.id+'|'+wk]||{paid:0,method:'Cash'};
+    var pd=typeof p==='number'?p:(p.paid||0);
+    var st=pd>=d&&d>0?'PAID':pd>0?'PARTIAL':'DUE';
+    return '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><div><b>'+esc(w.name)+'</b><div class="item-id">ID: '+esc(w.id)+'</div><div class="item-meta">'+weekPres(w)+' days • '+esc(w.category||'')+'</div></div><div style="text-align:right"><b style="color:#12294d;font-size:17px" class="num">'+cur(d)+'</b><div class="pill '+(st==='PAID'?'':st==='PARTIAL'?'warn':'bad')+'" style="margin-top:4px">'+st+'</div></div></div>'+
+      '<div class="row"><div style="flex:1;min-width:120px"><label>Amount paid</label><input type="number" min="0" max="'+d+'" value="'+pd+'" id="p_'+esc(w.id)+'" style="margin:0"></div><div style="flex:1;min-width:120px"><label>Method</label><select id="m_'+esc(w.id)+'" style="margin:0"><option'+(p.method==='Cash'?' selected':'')+'>Cash</option><option'+(p.method==='M-Pesa'?' selected':'')+'>M-Pesa</option><option'+(p.method==='Bank'?' selected':'')+'>Bank</option></select
